@@ -1,0 +1,137 @@
+(function(){
+
+// CONST 
+//var CONS_TARGET_FOLDER = "journal";
+//var CONS_TARGET_FOLDER = "GitHub/obsidian";
+//var CONS_TARGET_FOLDER = "../GitHub/foam";
+var CONS_TARGET_FOLDER = "I:/My Drive/journal";
+var CONS_MACRO_FOLDER  = "sakura";
+var CONS_MACRO_FOR_NEW = "./open_journal/new_memoLineForJournal.jse";
+var CONS_MACRO_FOR_ADD = "./open_journal/add_memoLineForJournal.jse";
+var CONS_JOURNAL_EXT   = ".md"
+//var CONS_JOURNAL_EXT   = ".txt";
+
+// global function
+function get_todayString(sep,ynum){
+  if(typeof(sep) === 'undefined') sep='/';
+  if(typeof(sep) === 'undefined') ynum=2;
+  var dtm = new Date();
+  return [
+    ('' + dtm.getFullYear()).slice(-ynum),
+    ('0' + (dtm.getMonth() +1)).slice(-2),
+    ('0' + dtm.getDate()).slice(-2)
+  ].join(sep);
+}
+
+function get_nowTimeString(sep){
+  if(typeof(sep) === 'undefined') sep=':';
+  if(arguments.length){
+    sep = arguments[0]
+  }
+  var dtm = new Date();
+  return [
+    ('0' + dtm.getHours()).slice(-2),
+    ('0' + dtm.getMinutes()).slice(-2)
+  ].join(sep);
+}
+
+function get_todayDayString(num){
+  if(typeof(num) === 'undefined') num=3;
+  var ret;
+  var aryDay = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var dtm = new Date();
+  var dw = dtm.getDay();
+  if(num === 0){
+    ret = dw;
+  } else {
+    ret = aryDay[dw].substr(0, num);
+  }
+  return ret;
+}
+
+function get_journalForToday(){
+  //var target_folder_name = CONS_TARGET_FOLDER;
+  var objFS = new ActiveXObject("Scripting.FileSystemObject");
+  //var objShell = new ActiveXObject("WScript.Shell");
+  //var doc_folder = objShell.SpecialFolders("MyDocuments");
+  //var user_folder = objFS.GetFolder(doc_folder).ParentFolder;
+  var user_folder = objFS.GetFolder(CONS_TARGET_FOLDER);
+  //var target_folder_path = objFS.BuildPath(user_folder, target_folder_name);
+  var target_folder_path = user_folder;
+  //var date_str = get_todayString('');
+  var date_str = get_todayString('-',4);
+  var target_journal_path = objFS.BuildPath(target_folder_path, date_str + CONS_JOURNAL_EXT);
+  //WScript.Echo(target_journal_path)
+  objShell = null;
+  objFS = null;
+  return target_journal_path
+}
+
+function create_textfile_by_force(path){
+  var objFS = new ActiveXObject("Scripting.FileSystemObject");
+  var parent_folder = objFS.GetParentFolderName(path);
+  if(!objFS.FolderExists(parent_folder)){
+    objFS.CreateFolder(parent_folder);
+  }
+  var objTS = objFS.OpenTextFile(path,2,true); // FIXME UTF-16 -> UTF-8
+  objTS.Close();
+  objTS = null;
+  objFS = null;
+}
+
+function test_path_and_new(path){
+  var objFS = new ActiveXObject("Scripting.FileSystemObject");
+  var isExist = objFS.FileExists(path)
+  if(isExist){
+    null;
+  } else {
+    create_textfile_by_force(path);
+  }
+  objFS = null;
+  return isExist;
+}
+
+function get_sakuraMacroPathForExist(isExist){
+  if(isExist){
+    var target_macro_name = CONS_MACRO_FOR_ADD;
+  } else {
+    var target_macro_name = CONS_MACRO_FOR_NEW;
+  }
+  var target_folder_name = CONS_MACRO_FOLDER;
+  var objFS = new ActiveXObject("Scripting.FileSystemObject");
+  var objShell = new ActiveXObject("WScript.Shell");
+  var appdata_folder = objShell.SpecialFolders("AppData");
+  var target_folder_path = objFS.BuildPath(appdata_folder, target_folder_name);
+  var target_macro_path = objFS.BuildPath(target_folder_path, target_macro_name);
+  objShell = null;
+  objFS = null;
+  return target_macro_path
+}
+
+// journalファイルをsakuraで、macroを起動して開く 
+function doProcess(){ 
+  var target_journal_path = get_journalForToday();
+  var isExist = test_path_and_new(target_journal_path);
+  var target_macro_path = get_sakuraMacroPathForExist(isExist);
+  var cmd_statement = "sakura.exe " + target_journal_path + " -M=" + target_macro_path;
+  //var cmd_statement = "wzme.exe " + target_journal_path ;
+  var objShell = new ActiveXObject("WScript.Shell");
+  
+  objShell.Run(cmd_statement, 0);
+  var objShell = null;
+
+}
+
+// -------------- entry point
+if(typeof(Editor) !== 'undefined'){
+  doProcess();
+  
+} else {
+  if(typeof(WScript) !== 'undefined'){
+    doProcess();
+  } else {
+    console.log('[Warn] This script is for sakura macro. A env is maybe node.')
+  }
+}
+
+}())
